@@ -1,46 +1,57 @@
-use clap::Parser;
-use std::path::PathBuf;
 use anyhow::Result;
-use subshift::io::{detect_format, parse_subtitles};
+use clap::{CommandFactory, Parser};
 use std::fs;
-use subshift::shifter::shift_subtitles;
-use subshift::parse_offset;
+use std::path::PathBuf;
+use subshift::io::{detect_format, parse_subtitles};
 use subshift::models::SubtitleData;
+use subshift::parse_offset;
+use subshift::shifter::shift_subtitles;
 
 #[derive(Parser)]
 #[command(name = "subshift")]
 #[command(about = "Shift subtitle file timestamps forwards or backwards.", long_about = None)]
 struct Cli {
     /// Path to the subtitle file (.srt or .vtt)
-    input_file: PathBuf,
+    #[arg(required = false)]
+    input_file: Option<PathBuf>,
 
     /// Time offset to shift (e.g., +1.5s, -500ms, or 2.0 for seconds)
-    offset: String,
+    #[arg(required = false)]
+    offset: Option<String>,
 
     /// Specify a different output file
-    #[arg(short, long)]
+    #[arg(short = 'o', long)]
     output: Option<PathBuf>,
 
     /// Overwrite the input file
-    #[arg(short, long)]
+    #[arg(short = 'w', long)]
     overwrite: bool,
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let offset_ms = parse_offset(&cli.offset)?;
-    let format = detect_format(&cli.input_file)?;
-    let sub_data = parse_subtitles(&cli.input_file, format)?;
+    // if required arguments missing, print help and exit success
+    if cli.input_file.is_none() || cli.offset.is_none() {
+        let mut cmd = Cli::command();
+        cmd.print_help()?;
+        println!();
+        return Ok(());
+    }
+
+    let input_file = cli.input_file.as_ref().unwrap();
+    let offset_ms = parse_offset(cli.offset.as_ref().unwrap())?;
+    let format = detect_format(input_file)?;
+    let sub_data = parse_subtitles(input_file, format)?;
 
     let (shifted_data, result) = shift_subtitles(sub_data, offset_ms);
 
     let output_path = if cli.overwrite {
-        cli.input_file.clone()
-    } else if let Some(output) = cli.output {
+        input_file.clone()
+    } else if let Some(output) = cli.output.clone() {
         output
     } else {
-        let mut new_path = cli.input_file.clone();
+        let mut new_path = input_file.clone();
         let stem = new_path.file_stem().unwrap().to_str().unwrap();
         let extension = new_path.extension().unwrap().to_str().unwrap();
         new_path.set_file_name(format!("{}_shifted.{}", stem, extension));
