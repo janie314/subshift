@@ -13,6 +13,7 @@ use tracing_subscriber::{fmt, EnvFilter};
 
 #[derive(Parser, Debug)]
 #[command(name = "subshift")]
+#[command(version = env!("CARGO_PKG_VERSION"))]
 #[command(about = "Shift subtitle file timestamps forwards or backwards.", long_about = None)]
 struct Cli {
     /// Path to the subtitle file (.srt or .vtt)
