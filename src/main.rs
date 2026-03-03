@@ -8,7 +8,7 @@ use subshift::parse_offset;
 use subshift::shifter::shift_subtitles;
 
 // logging
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 use tracing_subscriber::{fmt, EnvFilter};
 
 #[derive(Parser, Debug)]
