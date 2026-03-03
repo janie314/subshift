@@ -96,11 +96,11 @@ pub fn shift_subtitles(sub_data: SubtitleData, offset_ms: i64) -> (SubtitleData,
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rsubs_lib::{SRTLine, VTTLine, SRT, VTT};
+    use rsubs_lib::{SRTLine, SRT};
     use time::Time;
 
     fn make_srt() -> SubtitleData {
-        let mut srt = SRT {
+        let srt = SRT {
             lines: vec![SRTLine {
                 sequence_number: 1,
                 start: Time::MIDNIGHT,

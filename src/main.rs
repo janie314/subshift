@@ -75,6 +75,7 @@ fn main() -> Result<()> {
     let sub_data = parse_subtitles(input_file, format)?;
 
     let (shifted_data, result) = shift_subtitles(sub_data, offset_ms);
+    let mut logbuf = String::new();
 
     let output_path = if cli.overwrite {
         input_file.clone()
