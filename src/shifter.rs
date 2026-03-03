@@ -92,3 +92,34 @@ pub fn shift_subtitles(sub_data: SubtitleData, offset_ms: i64) -> (SubtitleData,
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rsubs_lib::{SRTLine, VTTLine, SRT, VTT};
+    use time::Time;
+
+    fn make_srt() -> SubtitleData {
+        let mut srt = SRT {
+            lines: vec![SRTLine {
+                sequence_number: 1,
+                start: Time::MIDNIGHT,
+                end: Time::MIDNIGHT,
+                text: "hello".into(),
+            }],
+        };
+        SubtitleData::Srt(srt)
+    }
+
+    #[test]
+    fn zero_offset_leaves_data() {
+        let data = make_srt();
+        let (shifted, result) = shift_subtitles(data, 0);
+        if let SubtitleData::Srt(srt) = shifted {
+            assert_eq!(srt.lines.len(), 1);
+        } else {
+            panic!("expected srt");
+        }
+        assert_eq!(result.clipped_count, 0);
+    }
+}

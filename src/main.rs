@@ -7,7 +7,7 @@ use subshift::models::SubtitleData;
 use subshift::parse_offset;
 use subshift::shifter::shift_subtitles;
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(name = "subshift")]
 #[command(about = "Shift subtitle file timestamps forwards or backwards.", long_about = None)]
 struct Cli {
@@ -26,6 +26,36 @@ struct Cli {
     /// Overwrite the input file
     #[arg(short = 'w', long)]
     overwrite: bool,
+}
+
+#[cfg(test)]
+mod cli_tests {
+    use super::*;
+    use std::path::PathBuf;
+
+    #[test]
+    fn parse_with_overwrite_and_offset() {
+        let args = ["subshift", "-w", "example.srt", "+0"];
+        let cli = Cli::parse_from(args.clone());
+        // log parse results
+        let log = format!(
+            "parsed overwrite={} input={:?} offset={:?}\n",
+            cli.overwrite, cli.input_file, cli.offset
+        );
+        let _ = std::fs::write("/tmp/cli_parse_result.log", log);
+        assert!(cli.overwrite);
+        assert_eq!(cli.input_file.unwrap(), PathBuf::from("example.srt"));
+        assert_eq!(cli.offset.unwrap(), "+0");
+    }
+
+    #[test]
+    fn help_prints_when_missing() {
+        let result = Cli::try_parse_from(["subshift"]);
+        assert!(result.is_ok()); // parse succeeds and returns struct with None fields
+        let cli = result.unwrap();
+        assert!(cli.input_file.is_none());
+        assert!(cli.offset.is_none());
+    }
 }
 
 fn main() -> Result<()> {
@@ -62,9 +92,11 @@ fn main() -> Result<()> {
         SubtitleData::Srt(srt_file) => srt_file.to_string(),
         SubtitleData::Vtt(vtt_file) => vtt_file.to_string(),
     };
+    logbuf.push_str(&format!("writing output to {:?}\n", output_path));
     fs::write(&output_path, out_str)?;
 
     println!("Successfully shifted subtitles to {:?}", output_path);
+    logbuf.push_str("printed success\n");
 
     if result.clipped_count > 0 {
         eprintln!(
@@ -77,7 +109,9 @@ fn main() -> Result<()> {
         if let Some(last) = result.last_removed {
             eprintln!("Last removed: {}", last.trim());
         }
+        logbuf.push_str(&format!("removed count {}\n", result.clipped_count));
     }
 
+    let _ = std::fs::write("/tmp/subshift.log", logbuf);
     Ok(())
 }

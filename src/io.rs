@@ -20,7 +20,9 @@ pub fn detect_format(path: &Path) -> Result<SubtitleFormat> {
 }
 
 pub fn parse_subtitles(path: &Path, format: SubtitleFormat) -> Result<SubtitleData> {
-    let content = fs::read_to_string(path).map_err(|e| anyhow!("Failed to read file: {:?}", e))?;
+    // read raw bytes since subtitle files may not be strict UTF-8
+    let bytes = fs::read(path).map_err(|e| anyhow!("Failed to read file: {:?}", e))?;
+    let content = String::from_utf8_lossy(&bytes);
 
     match format {
         SubtitleFormat::Srt => {
