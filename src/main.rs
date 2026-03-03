@@ -16,7 +16,7 @@ struct Cli {
     input_file: Option<PathBuf>,
 
     /// Time offset to shift (e.g., +1.5s, -500ms, or 2.0 for seconds)
-    #[arg(required = false)]
+    #[arg(required = false, allow_hyphen_values = true)]
     offset: Option<String>,
 
     /// Specify a different output file
