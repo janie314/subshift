@@ -7,6 +7,10 @@ use subshift::models::SubtitleData;
 use subshift::parse_offset;
 use subshift::shifter::shift_subtitles;
 
+// logging
+use tracing::{info, warn};
+use tracing_subscriber::{fmt, EnvFilter};
+
 #[derive(Parser, Debug)]
 #[command(name = "subshift")]
 #[command(about = "Shift subtitle file timestamps forwards or backwards.", long_about = None)]
@@ -59,13 +63,17 @@ mod cli_tests {
 }
 
 fn main() -> Result<()> {
+    // initialize tracing subscriber (default to info level, overridable by RUST_LOG)
+    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    fmt().with_env_filter(filter).init();
+
     let cli = Cli::parse();
 
     // if required arguments missing, print help and exit success
     if cli.input_file.is_none() || cli.offset.is_none() {
         let mut cmd = Cli::command();
         cmd.print_help()?;
-        println!();
+        println!(); // help output should still go to stdout
         return Ok(());
     }
 
@@ -75,7 +83,6 @@ fn main() -> Result<()> {
     let sub_data = parse_subtitles(input_file, format)?;
 
     let (shifted_data, result) = shift_subtitles(sub_data, offset_ms);
-    let mut logbuf = String::new();
 
     let output_path = if cli.overwrite {
         input_file.clone()
@@ -93,26 +100,23 @@ fn main() -> Result<()> {
         SubtitleData::Srt(srt_file) => srt_file.to_string(),
         SubtitleData::Vtt(vtt_file) => vtt_file.to_string(),
     };
-    logbuf.push_str(&format!("writing output to {:?}\n", output_path));
+    info!(?output_path, "writing output");
     fs::write(&output_path, out_str)?;
 
-    println!("Successfully shifted subtitles to {:?}", output_path);
-    logbuf.push_str("printed success\n");
+    info!(?output_path, "Successfully shifted subtitles");
 
     if result.clipped_count > 0 {
-        eprintln!(
-            "Warning: {} subtitle entries were removed because they were shifted before 00:00:00.",
-            result.clipped_count
+        warn!(
+            count = result.clipped_count,
+            "some subtitle entries were removed because they were shifted before 00:00:00"
         );
         if let Some(first) = result.first_removed {
-            eprintln!("First removed: {}", first.trim());
+            warn!(first = %first.trim(), "first removed entry");
         }
         if let Some(last) = result.last_removed {
-            eprintln!("Last removed: {}", last.trim());
+            warn!(last = %last.trim(), "last removed entry");
         }
-        logbuf.push_str(&format!("removed count {}\n", result.clipped_count));
     }
 
-    let _ = std::fs::write("/tmp/subshift.log", logbuf);
     Ok(())
 }

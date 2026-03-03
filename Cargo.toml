@@ -9,3 +9,7 @@ rsubs-lib = "0.3.3"
 humantime = "2.1"
 anyhow = "1.0"
 time = "0.3"
+
+# logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"] }
