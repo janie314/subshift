@@ -122,4 +122,120 @@ mod tests {
         }
         assert_eq!(result.clipped_count, 0);
     }
+
+    #[test]
+    fn positive_offset_moves_lines_forward() {
+        // one line starting at 1s ending at 2s
+        let srt = SRT {
+            lines: vec![SRTLine {
+                sequence_number: 1,
+                start: Time::MIDNIGHT + time::Duration::seconds(1),
+                end: Time::MIDNIGHT + time::Duration::seconds(2),
+                text: "a".into(),
+            }],
+        };
+        let (shifted, result) = shift_subtitles(SubtitleData::Srt(srt), 1500);
+        if let SubtitleData::Srt(srt) = shifted {
+            let line = &srt.lines[0];
+            assert_eq!((line.start - Time::MIDNIGHT).whole_milliseconds(), 2500);
+            assert_eq!((line.end - Time::MIDNIGHT).whole_milliseconds(), 3500);
+        } else {
+            panic!("expected srt");
+        }
+        assert_eq!(result.clipped_count, 0);
+    }
+
+    #[test]
+    fn negative_offset_partial_clip_and_shift() {
+        // two lines: first will hit zero start, second stays positive
+        let srt = SRT {
+            lines: vec![
+                SRTLine {
+                    sequence_number: 1,
+                    start: Time::MIDNIGHT + time::Duration::seconds(1),
+                    end: Time::MIDNIGHT + time::Duration::seconds(4),
+                    text: "first".into(),
+                },
+                SRTLine {
+                    sequence_number: 2,
+                    start: Time::MIDNIGHT + time::Duration::seconds(5),
+                    end: Time::MIDNIGHT + time::Duration::seconds(6),
+                    text: "second".into(),
+                },
+            ],
+        };
+        let (shifted, result) = shift_subtitles(SubtitleData::Srt(srt), -1500);
+        if let SubtitleData::Srt(srt) = shifted {
+            assert_eq!(srt.lines.len(), 2);
+            // first line start should be clamped to 0, end reduced by 1.5s
+            let first = &srt.lines[0];
+            assert_eq!((first.start - Time::MIDNIGHT).whole_milliseconds(), 0);
+            assert_eq!((first.end - Time::MIDNIGHT).whole_milliseconds(), 2500);
+            // second line shifted normally
+            let second = &srt.lines[1];
+            assert_eq!((second.start - Time::MIDNIGHT).whole_milliseconds(), 3500);
+            assert_eq!((second.end - Time::MIDNIGHT).whole_milliseconds(), 4500);
+        } else {
+            panic!("expected srt");
+        }
+        assert_eq!(result.clipped_count, 0);
+    }
+
+    #[test]
+    fn negative_offset_remove_all() {
+        // both lines will be removed when offset pushes them entirely before zero
+        let srt = SRT {
+            lines: vec![
+                SRTLine {
+                    sequence_number: 1,
+                    start: Time::MIDNIGHT + time::Duration::seconds(1),
+                    end: Time::MIDNIGHT + time::Duration::seconds(4),
+                    text: "first".into(),
+                },
+                SRTLine {
+                    sequence_number: 2,
+                    start: Time::MIDNIGHT + time::Duration::seconds(5),
+                    end: Time::MIDNIGHT + time::Duration::seconds(6),
+                    text: "second".into(),
+                },
+            ],
+        };
+        let (shifted, result) = shift_subtitles(SubtitleData::Srt(srt), -6000);
+        if let SubtitleData::Srt(srt) = shifted {
+            assert!(srt.lines.is_empty());
+        } else {
+            panic!("expected srt");
+        }
+        assert_eq!(result.clipped_count, 2);
+        assert_eq!(result.first_removed.as_deref(), Some("first"));
+        assert_eq!(result.last_removed.as_deref(), Some("second"));
+    }
+
+    #[test]
+    fn vtt_behaviour_matches_srt() {
+        use rsubs_lib::{VTTLine, VTT};
+        use std::collections::HashMap;
+
+        let vtt = VTT {
+            regions: Vec::new(),
+            styles: Vec::new(),
+            lines: vec![VTTLine {
+                identifier: None,
+                start: Time::MIDNIGHT + time::Duration::seconds(2),
+                end: Time::MIDNIGHT + time::Duration::seconds(3),
+                settings: HashMap::new(),
+                text: "vtt".into(),
+            }],
+        };
+
+        let (shifted, result) = shift_subtitles(SubtitleData::Vtt(vtt), 1000);
+        if let SubtitleData::Vtt(vtt2) = shifted {
+            let line = &vtt2.lines[0];
+            assert_eq!((line.start - Time::MIDNIGHT).whole_milliseconds(), 3000);
+            assert_eq!((line.end - Time::MIDNIGHT).whole_milliseconds(), 4000);
+        } else {
+            panic!("expected vtt");
+        }
+        assert_eq!(result.clipped_count, 0);
+    }
 }

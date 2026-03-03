@@ -13,6 +13,17 @@ fn test_cli_help() {
 }
 
 #[test]
+fn test_cli_invalid_offset() {
+    // calling with a nonsense offset should fail
+    let status = Command::new("cargo")
+        .args(["run", "--", "tests/fixtures/test.srt", "notanoffset"])
+        .status()
+        .expect("Failed to execute subshift");
+
+    assert!(!status.success());
+}
+
+#[test]
 fn test_shift_forward_srt() {
     let output_file = "tests/fixtures/test_shifted_forward.srt";
     if Path::new(output_file).exists() {

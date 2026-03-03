@@ -41,4 +41,11 @@ mod tests {
         assert_eq!(parse_offset("2.0").unwrap(), 2000);
         assert_eq!(parse_offset("-2").unwrap(), -2000);
     }
+
+    #[test]
+    fn test_parse_offset_errors() {
+        assert!(parse_offset("").is_err());
+        assert!(parse_offset("foo").is_err());
+        assert!(parse_offset("+ms").is_err());
+    }
 }
