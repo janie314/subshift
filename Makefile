@@ -9,5 +9,5 @@ build:
 
 install:
 	make build
-	mkdir -p "$HOME/.local/bin"
-	cp -v ./target/release/subshift "$HOME/.local/bin"
+	mkdir -p "$$HOME/.local/bin"
+	cp -v ./target/release/subshift "$$HOME/.local/bin"
