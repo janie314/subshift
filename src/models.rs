@@ -1,5 +1,5 @@
-use std::path::PathBuf;
 use rsubs_lib::{SRT, VTT};
+use std::path::PathBuf;
 
 #[derive(Debug, Clone, Copy)]
 pub enum SubtitleFormat {

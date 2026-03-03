@@ -1,6 +1,6 @@
-use std::process::Command;
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 #[test]
 fn test_cli_help() {
@@ -20,7 +20,14 @@ fn test_shift_forward_srt() {
     }
 
     let status = Command::new("cargo")
-        .args(["run", "--", "tests/fixtures/test.srt", "+1.5s", "-o", output_file])
+        .args([
+            "run",
+            "--",
+            "tests/fixtures/test.srt",
+            "+1.5s",
+            "-o",
+            output_file,
+        ])
         .status()
         .expect("Failed to execute subshift");
 
@@ -39,7 +46,14 @@ fn test_shift_backward_srt_clipping() {
     // Shift back by 2 seconds. The first entry (1s to 4s) should become (0s to 2s).
     // If we shift back by 5 seconds, it should be removed.
     let status = Command::new("cargo")
-        .args(["run", "--", "tests/fixtures/test.srt", "-2s", "-o", output_file])
+        .args([
+            "run",
+            "--",
+            "tests/fixtures/test.srt",
+            "-2s",
+            "-o",
+            output_file,
+        ])
         .status()
         .expect("Failed to execute subshift");
 
@@ -57,7 +71,14 @@ fn test_shift_vtt() {
     }
 
     let status = Command::new("cargo")
-        .args(["run", "--", "tests/fixtures/test.vtt", "1.0", "-o", output_file])
+        .args([
+            "run",
+            "--",
+            "tests/fixtures/test.vtt",
+            "1.0",
+            "-o",
+            output_file,
+        ])
         .status()
         .expect("Failed to execute subshift");
 
